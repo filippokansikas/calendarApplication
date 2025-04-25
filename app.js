@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
     let date = new Date();
     let year = date.getFullYear();
@@ -74,14 +75,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderCalendar();
 });
+
+// -------------------- Booking Page Script --------------------
+
 const queryParams = new URLSearchParams(window.location.search);
 const date = queryParams.get("date");
 document.getElementById("selected-date").innerText = "Booking for: " + date;
 
 const timeSlots = [
-  "09:00 AM", "10:00 AM", "11:00 AM",
-  "12:00 PM", "01:00 PM", "02:00 PM",
-  "03:00 PM", "04:00 PM", "05:00 PM"
+    "09:00 AM", "10:00 AM", "11:00 AM",
+    "12:00 PM", "01:00 PM", "02:00 PM",
+    "03:00 PM", "04:00 PM", "05:00 PM"
 ];
 
 const container = document.getElementById("time-container");
@@ -92,43 +96,83 @@ const dayAppointments = appointments[date] || [];
 
 const isBooked = (time) => dayAppointments.some(appt => appt.time === time);
 const getNote = (time) => {
-  const appt = dayAppointments.find(appt => appt.time === time);
-  return appt ? appt.note : "";
+    const appt = dayAppointments.find(appt => appt.time === time);
+    return appt ? appt.note : "";
 };
 
-// Show current day's appointments
+// Show current day's appointments with delete buttons
 if (dayAppointments.length === 0) {
-  appointmentsEl.innerHTML = "<li>No appointments booked yet.</li>";
+    appointmentsEl.innerHTML = "<li>No appointments booked yet.</li>";
 } else {
-  dayAppointments
-    .sort((a, b) => timeSlots.indexOf(a.time) - timeSlots.indexOf(b.time))
-    .forEach(appt => {
-      const li = document.createElement("li");
-      li.textContent = `${appt.time} – ${appt.note}`;
-      appointmentsEl.appendChild(li);
+    dayAppointments
+        .sort((a, b) => timeSlots.indexOf(a.time) - timeSlots.indexOf(b.time))
+        .forEach((appt, index) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                ${appt.time} – ${appt.note} 
+                <button class="delete-btn" data-index="${index}">Delete</button>
+            `;
+            appointmentsEl.appendChild(li);
+        });
+
+    // Handle delete
+    document.querySelectorAll(".delete-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const index = parseInt(e.target.getAttribute("data-index"));
+            if (confirm("Are you sure you want to delete this appointment?")) {
+                dayAppointments.splice(index, 1);
+                if (dayAppointments.length === 0) {
+                    delete appointments[date];
+                }
+                localStorage.setItem("appointments", JSON.stringify(appointments));
+                window.location.reload();
+            }
+        });
     });
 }
 
 // Create time slot buttons
 timeSlots.forEach(time => {
-  const btn = document.createElement("button");
-  btn.textContent = isBooked(time)
-    ? `${time} - Booked`
-    : time;
-  btn.disabled = isBooked(time);
-  btn.className = isBooked(time) ? "booked" : "";
+    const btn = document.createElement("button");
+    btn.textContent = isBooked(time)
+        ? `${time} - Booked`
+        : time;
+    btn.disabled = isBooked(time);
+    btn.className = isBooked(time) ? "booked" : "";
 
-  btn.addEventListener("click", () => {
-    const note = prompt(`Add a note for ${time} on ${date}:`);
-    if (note !== null) {
-      const newAppt = { time, note };
-      if (!appointments[date]) appointments[date] = [];
-      appointments[date].push(newAppt);
-      localStorage.setItem("appointments", JSON.stringify(appointments));
-      alert(`Appointment booked!\n\nDate: ${date}\nTime: ${time}\nNote: ${note}`);
-      window.location.reload(); // Reload to show updated list
-    }
+    btn.addEventListener("click", () => {
+        const note = prompt(`Add a note for ${time} on ${date}:`);
+        if (note !== null) {
+            const newAppt = { time, note };
+            if (!appointments[date]) appointments[date] = [];
+            appointments[date].push(newAppt);
+            localStorage.setItem("appointments", JSON.stringify(appointments));
+            alert(`Appointment booked!\n\nDate: ${date}\nTime: ${time}\nNote: ${note}`);
+            window.location.reload();
+        }
+    });
+
+    container.appendChild(btn);
+});
+// Get appointments
+fetch(`http://localhost:3000/appointments/${date}`)
+  .then(res => res.json())
+  .then(data => {
+    // use data as appointments for this day
   });
 
-  container.appendChild(btn);
+// Add appointment
+fetch(`http://localhost:3000/appointments/${date}`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ time: "10:00 AM", note: "Dentist" })
 });
+
+// Delete appointment
+fetch(`http://localhost:3000/appointments/${date}`, {
+  method: "DELETE",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ time: "10:00 AM" })
+});
+
+
