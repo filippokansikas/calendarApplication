@@ -154,25 +154,16 @@ timeSlots.forEach(time => {
 
     container.appendChild(btn);
 });
-// Get appointments
-fetch(`http://localhost:3000/appointments/${date}`)
-  .then(res => res.json())
-  .then(data => {
-    // use data as appointments for this day
-  });
+document.getElementById("download-appointments").addEventListener("click", () => {
+    const appointments = JSON.parse(localStorage.getItem("appointments") || "{}");
 
-// Add appointment
-fetch(`http://localhost:3000/appointments/${date}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ time: "10:00 AM", note: "Dentist" })
-});
-
-// Delete appointment
-fetch(`http://localhost:3000/appointments/${date}`, {
-  method: "DELETE",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ time: "10:00 AM" })
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appointments, null, 2));
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "appointments.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 });
 
 
