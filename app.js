@@ -1,189 +1,164 @@
+addEventListener("DOMContentLoaded", (event) => {
+const form = document.getElementById('add-appointment-form');
+const dateInput = document.getElementById('date');
+const timeInput = document.getElementById('time');
+const titleInput = document.getElementById('title');
+const detailsInput = document.getElementById('details');
+const monthYearLabel = document.getElementById('month-year');
+const prevMonthBtn = document.getElementById('prev-month');
+const nextMonthBtn = document.getElementById('next-month');
+const saveBtn = document.getElementById('save-btn');
+const loadBtn = document.getElementById('load-btn');
+const fileInput = document.getElementById('file-input');
 
-document.addEventListener("DOMContentLoaded", () => {
-    let date = new Date();
-    let year = date.getFullYear();
-    let month = date.getMonth();
+// Initialize an empty in-memory "database"
+let appointments = {};
+let currentDate = new Date();
 
-    const day = document.querySelector(".calendar-dates");
-    const currdate = document.querySelector(".calendar-current-date");
-    const prenexIcons = document.querySelectorAll(".calendar-navigation");
+function createCalendar() {
+  calendar.innerHTML = '';
 
-    const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-    let appointments = JSON.parse(localStorage.getItem("appointments") || "{}");
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
-    const renderCalendar = () => {
-        const dayone = new Date(year, month, 1).getDay();
-        const lastdate = new Date(year, month + 1, 0).getDate();
-        const dayend = new Date(year, month, lastdate).getDay();
-        const monthlastdate = new Date(year, month, 0).getDate();
+  monthYearLabel.textContent = `${monthNames[month]} ${year}`;
 
-        let html = "";
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        for (let i = dayone; i > 0; i--) {
-            html += `<li class="inactive">${monthlastdate - i + 1}</li>`;
-        }
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    calendar.appendChild(empty);
+  }
 
-        for (let i = 1; i <= lastdate; i++) {
-            const today = new Date();
-            const isToday =
-                i === today.getDate() &&
-                month === today.getMonth() &&
-                year === today.getFullYear()
-                    ? "active"
-                    : "";
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    dayDiv.dataset.date = dateStr;
+    
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'date';
+    dateLabel.textContent = day;
+    
+    dayDiv.appendChild(dateLabel);
 
-            const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-            const hasAppointment = appointments[dateKey] ? "appointment" : "";
-
-            html += `<li class="${isToday} ${hasAppointment}" data-date="${dateKey}">${i}</li>`;
-        }
-
-        for (let i = dayend; i < 6; i++) {
-            html += `<li class="inactive">${i - dayend + 1}</li>`;
-        }
-
-        currdate.innerText = `${months[month]} ${year}`;
-        day.innerHTML = html;
-
-        addClickHandlers();
-    };
-
-    const addClickHandlers = () => {
-        document.querySelectorAll(".calendar-dates li:not(.inactive)").forEach(li => {
-            li.addEventListener("click", () => {
-                const selectedDate = li.getAttribute("data-date");
-                window.location.href = `book.html?date=${selectedDate}`;
-            });
-        });
-    };
-
-    prenexIcons.forEach(icon => {
-        icon.addEventListener("click", () => {
-            month = icon.id === "calendar-prev" ? month - 1 : month + 1;
-            if (month < 0 || month > 11) {
-                date = new Date(year, month, 1);
-                year = date.getFullYear();
-                month = date.getMonth();
-            }
-            renderCalendar();
-        });
-    });
-
-    renderCalendar();
-});
-
-// -------------------- Booking Page Script --------------------
-
-const queryParams = new URLSearchParams(window.location.search);
-const date = queryParams.get("date");
-document.getElementById("selected-date").innerText = "Booking for: " + date;
-
-const timeSlots = [
-    "09:00 AM", "10:00 AM", "11:00 AM",
-    "12:00 PM", "01:00 PM", "02:00 PM",
-    "03:00 PM", "04:00 PM", "05:00 PM",
-    "06:00 PM", "07:00 PM", "08:00 PM"
-];
-
-const container = document.getElementById("time-container");
-const appointmentsEl = document.getElementById("appointments");
-
-const appointments = JSON.parse(localStorage.getItem("appointments") || "{}");
-const dayAppointments = appointments[date] || [];
-
-const isBooked = (time) => dayAppointments.some(appt => appt.time === time);
-const getNote = (time) => {
-    const appt = dayAppointments.find(appt => appt.time === time);
-    return appt ? appt.note : "";
-};
-
-// Show current day's appointments with delete buttons
-if (dayAppointments.length === 0) {
-    appointmentsEl.innerHTML = "<li>No appointments booked yet.</li>";
-} else {
-    dayAppointments
-        .sort((a, b) => timeSlots.indexOf(a.time) - timeSlots.indexOf(b.time))
-        .forEach((appt, index) => {
-            const li = document.createElement("li");
-            li.innerHTML = `
-                ${appt.time} – ${appt.note} 
-                <button class="delete-btn" data-index="${index}">Delete</button>
-            `;
-            appointmentsEl.appendChild(li);
-        });
-
-    // Handle delete
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            const index = parseInt(e.target.getAttribute("data-index"));
-            if (confirm("Are you sure you want to delete this appointment?")) {
-                dayAppointments.splice(index, 1);
-                if (dayAppointments.length === 0) {
-                    delete appointments[date];
-                }
-                localStorage.setItem("appointments", JSON.stringify(appointments));
-                window.location.reload();
-            }
-        });
-    });
-}
-
-// Create time slot buttons
-timeSlots.forEach(time => {
-    const btn = document.createElement("button");
-    btn.textContent = isBooked(time)
-        ? `${time} - Booked`
-        : time;
-    btn.disabled = isBooked(time);
-    btn.className = isBooked(time) ? "booked" : "";
-
-    btn.addEventListener("click", () => {
-        const note = prompt(`Add a note for ${time} on ${date}:`);
-        if (note !== null) {
-            const newAppt = { time, note };
-            if (!appointments[date]) appointments[date] = [];
-            appointments[date].push(newAppt);
-            localStorage.setItem("appointments", JSON.stringify(appointments));
-            alert(`Appointment booked!\n\nDate: ${date}\nTime: ${time}\nNote: ${note}`);
-            window.location.reload();
-        }
-    });
-
-    container.appendChild(btn);
-});
-// -------------------- End of Booking Page Script --------------------
-function loadAppointmentsDatabase(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        alert("No file selected!");
-        return;
+    if (appointments[dateStr]) {
+      const appointmentsDiv = document.createElement('div');
+      appointmentsDiv.className = 'appointments';
+      const sortedTimes = Object.keys(appointments[dateStr]).sort();
+      appointmentsDiv.innerHTML = sortedTimes
+        .map(time => `<div>• ${time} - ${appointments[dateStr][time].title}</div>`)
+        .join('');
+      dayDiv.appendChild(appointmentsDiv);
     }
 
-    const reader = new FileReader();
+    dayDiv.addEventListener('click', () => {
+      showAppointments(dateStr);
+    });
 
-    reader.onload = function(e) {
-        try {
-            const importedAppointments = JSON.parse(e.target.result);
-
-            if (typeof importedAppointments !== 'object' || importedAppointments === null) {
-                alert("Invalid file content. Expected a JSON object.");
-                return;
-            }
-
-            // Replace current database with uploaded one
-            localStorage.setItem("appointments", JSON.stringify(importedAppointments));
-            alert("Database loaded successfully!");
-            window.location.reload(); // reload to reflect changes immediately
-        } catch (err) {
-            alert("Error parsing the uploaded file: " + err.message);
-        }
-    };
-
-    reader.readAsText(file);
+    calendar.appendChild(dayDiv);
+  }
 }
 
-document.getElementById("upload-appointments").addEventListener("change", loadAppointmentsDatabase);
+function showAppointments(dateStr) {
+  if (!appointments[dateStr]) {
+    alert(`No appointments on ${dateStr}.`);
+    return;
+  }
+
+  const dayAppointments = appointments[dateStr];
+  let text = `Appointments on ${dateStr}:\n\n`;
+  const times = Object.keys(dayAppointments).sort();
+
+  times.forEach((time, idx) => {
+    const app = dayAppointments[time];
+    text += `${idx + 1}. [${time}] ${app.title} - ${app.details}\n`;
+  });
+
+  text += "\nEnter number to delete an appointment, or Cancel.";
+  const response = prompt(text);
+  if (response) {
+    const idx = parseInt(response) - 1;
+    if (!isNaN(idx) && times[idx]) {
+      delete dayAppointments[times[idx]];
+      if (Object.keys(dayAppointments).length === 0) {
+        delete appointments[dateStr];
+      }
+      createCalendar();
+      alert('Appointment deleted. Remember to save if you want to keep changes!');
+    }
+  }
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const date = dateInput.value;
+  const time = timeInput.value;
+  const title = titleInput.value;
+  const details = detailsInput.value;
+
+  if (!appointments[date]) {
+    appointments[date] = {};
+  }
+
+  if (appointments[date][time]) {
+    if (!confirm('There is already an appointment at this time. Overwrite?')) {
+      return;
+    }
+  }
+
+  appointments[date][time] = { title, details };
+  createCalendar();
+  form.reset();
+});
+
+prevMonthBtn.addEventListener('click', () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  createCalendar();
+});
+
+nextMonthBtn.addEventListener('click', () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  createCalendar();
+});
+
+saveBtn.addEventListener('click', () => {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appointments, null, 2));
+  const dlAnchor = document.createElement('a');
+  dlAnchor.setAttribute("href", dataStr);
+  dlAnchor.setAttribute("download", "appointments.json");
+  dlAnchor.click();
+});
+
+loadBtn.addEventListener('click', () => {
+  fileInput.click(); // Open file selector
+});
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const loadedAppointments = JSON.parse(event.target.result);
+      appointments = loadedAppointments;
+      createCalendar();
+      alert('Appointments loaded successfully!');
+    } catch (err) {
+      alert('Error loading appointments: Invalid JSON file.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// Initialize
+createCalendar();
+});
