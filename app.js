@@ -85,7 +85,8 @@ document.getElementById("selected-date").innerText = "Booking for: " + date;
 const timeSlots = [
     "09:00 AM", "10:00 AM", "11:00 AM",
     "12:00 PM", "01:00 PM", "02:00 PM",
-    "03:00 PM", "04:00 PM", "05:00 PM"
+    "03:00 PM", "04:00 PM", "05:00 PM",
+    "06:00 PM", "07:00 PM", "08:00 PM"
 ];
 
 const container = document.getElementById("time-container");
@@ -154,16 +155,35 @@ timeSlots.forEach(time => {
 
     container.appendChild(btn);
 });
-document.getElementById("download-appointments").addEventListener("click", () => {
-    const appointments = JSON.parse(localStorage.getItem("appointments") || "{}");
+// -------------------- End of Booking Page Script --------------------
+function loadAppointmentsDatabase(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        alert("No file selected!");
+        return;
+    }
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appointments, null, 2));
-    const downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "appointments.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-});
+    const reader = new FileReader();
 
+    reader.onload = function(e) {
+        try {
+            const importedAppointments = JSON.parse(e.target.result);
 
+            if (typeof importedAppointments !== 'object' || importedAppointments === null) {
+                alert("Invalid file content. Expected a JSON object.");
+                return;
+            }
+
+            // Replace current database with uploaded one
+            localStorage.setItem("appointments", JSON.stringify(importedAppointments));
+            alert("Database loaded successfully!");
+            window.location.reload(); // reload to reflect changes immediately
+        } catch (err) {
+            alert("Error parsing the uploaded file: " + err.message);
+        }
+    };
+
+    reader.readAsText(file);
+}
+
+document.getElementById("upload-appointments").addEventListener("change", loadAppointmentsDatabase);
